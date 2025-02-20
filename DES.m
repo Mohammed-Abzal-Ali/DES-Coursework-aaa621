@@ -32,6 +32,8 @@ G_R.initial_state = 'fn'; % Assumed the bot starts facing north
 
 G_MparR = Parallel(G_M, G_R);
 
+G_MparR.display_all
+
 %G_N = PartialObserve(G_MparR);
 
 

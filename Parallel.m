@@ -16,6 +16,8 @@ function automata_out = Parallel(g1, g2)
 end
 
 function par_trans_list = parallel_transition(g1, g2, par_event_list, par_state_list)
+    par_trans_list = [];
+
     E_1 = g1.event_list;
     E_2 = g2.event_list;
     X_1 = g1.state_list;
@@ -23,43 +25,117 @@ function par_trans_list = parallel_transition(g1, g2, par_event_list, par_state_
     f_1 = g1.transition_list;
     f_2 = g2.transition_list;
 
+    char_f1 = [];
+    for idxf = 1:(size(f_1,1))
+        curr_trans = f_1(idxf,:);
+        state1 = X_1(curr_trans(1),:);
+        state2 = X_1(curr_trans(2),:);
+        trans = E_1(curr_trans(3));
+        char_trans = [state1, state2, ',', trans];
+        char_f1 = [char_f1 ; char_trans];
+    end
+
+    char_f2 = [];
+    for idxf = 1:(size(f_2,1))
+        curr_trans = f_2(idxf,:);
+        state1 = X_2(curr_trans(1),:);
+        state2 = X_2(curr_trans(2),:);
+        trans = E_2(curr_trans(3));
+        char_trans = [state1, state2, ',', trans];
+        char_f2 = [char_f2 ; char_trans];
+    end
+    char_f1 = string(char_f1);
+    char_f2 = string(char_f2);
     % Get the event sets needed to determine the transition
     only1 = setdiff(E_1, E_2);  % E1/E2
-    only2 = setdiff(E_2, E_1);  % E2/E1
-    %both = intersect(E_1, E_2); %E1nE2
-
-    % For each event in the sets: check the original transitions and see if they are defined
-    % If defined in both, keep in f_1 and f_2, else move to seperate array;
-    only1_trans = [];
-    only2_trans = [];
-    not_both_f1 = [];
-    not_both_f2 = [];
-
-    for idx_1 = 1:(size(f_1,1))
-        cur_trans = E_1(f_1(idx_1,3));
-        if ismember(cur_trans, only1)
-            only1_trans = [only1_trans; f_1(idx_1,:)];
-            not_both_f1 = [not_both_f1 idx_1]; % Track which indexes to remove
-        end
-    end
-    for idx_2 = 1:(size(f_2,1))
-        cur_trans = E_2(f_2(idx_2,3));
-        if ismember(cur_trans, only2)
-            only2_trans = [only2_trans; f_2(idx_2,:)];
-            not_both_f2 = [not_both_f2 idx_2]; % Track which indexes to remove
-        end
-    end
-    for idx_f1 = (length(not_both_f1)):-1:1
-        f_1(not_both_f1(idx_f1),:) = [];
-    end
-    for idx_f2 = (length(not_both_f2)):-1:1
-        f_2(not_both_f2(idx_f2),:) = [];
-    end
+    only2 = setdiff(E_2, E_1);  % E2/E2
+    both = intersect(E_1, E_2); %E1nE2
     
-    % For each of the transitions lists, find the relevant states in par_states 
-    % Construct the par_trans_list by assigning events to it
+    % For each pair of states in par_sates, check if transition is valid
+    g1_regex = '(\w*,';
+    g2_regex = ',\w*)';
+    for i = 1:size(par_state_list,1)
+        for j = 1:size(par_state_list,1)
+            %(this loop is a brute force way of finding all possible pairs of states)
+            % par_state = '(' g1.state ',' g2.state ')' 
+            beg_state = par_state_list(i,:);
+            end_state = par_state_list(j,:);
 
-    par_trans_list = [];
+            beg_g1_state = char(regexp(beg_state,g1_regex,"match"));
+            beg_g1_state = beg_g1_state(1,(2:(length(beg_g1_state)-1)));
+            end_g1_state = char(regexp(end_state,g1_regex,"match"));
+            end_g1_state = end_g1_state(1,(2:(length(end_g1_state)-1)));
 
+            beg_g2_state = char(regexp(beg_state,g2_regex,"match"));
+            beg_g2_state = beg_g2_state(1,(2:(length(beg_g2_state)-1)));
+            end_g2_state = char(regexp(end_state,g2_regex,"match"));
+            end_g2_state = end_g2_state(1,(2:(length(end_g2_state)-1)));
+
+            dummy_g1_trans = [beg_g1_state end_g1_state];
+            dummy_g2_trans = [beg_g2_state end_g2_state];
+
+            % Now that we have our states, for each event in the prior 
+            % sets, check if that event is dfeined as a transition for 
+            % our curent pairs
+
+            % For events in only automata 1
+            for idx_only1 = 1:length(only1)
+                curr_event = only1(idx_only1,:);
+                check1 = string([dummy_g1_trans ',' curr_event]);
+                if ismember(check1,char_f1)
+                    % Only valid if the state of the other automata doesn't change
+                    if isequal(beg_g2_state, end_g2_state)
+                      % If the transition is defined, add to par_trans_list the indexes
+                        % of the states in the par_state_list and the index of the event in
+                        % par_event_list
+                        event_index = 0;
+                        for event_index_idx = 1:(size(par_event_list,1))
+                            if isequal(curr_event, par_event_list(event_index_idx,:))
+                                event_index = event_index_idx;
+                                break
+                            end
+                        end
+                        par_trans_list = [par_trans_list; i,j,event_index];
+                    end
+                end
+            end
+            
+            % For events in only automata 2
+            for idx_only2 = 1:length(only2)
+                curr_event = only2(idx_only2,:);
+                check2 = string([dummy_g2_trans ',' curr_event]);
+                if ismember(check2,char_f2)
+                    if isequal(beg_g1_state, end_g1_state)
+                        event_index = 0;
+                        for event_index_idx = 1:(size(par_event_list,1))
+                            if isequal(curr_event, par_event_list(event_index_idx,:))
+                                event_index = event_index_idx;
+                                break
+                            end
+                        end
+                    par_trans_list = [par_trans_list; i,j,event_index];
+                    end
+                end
+            end
+            
+            % For events in both automata 
+            for idx_both = 1:length(both)
+                curr_event = both(idx_both,:);
+                check1 = string([dummy_g1_trans ',' curr_event]);
+                check2 = string([dummy_g2_trans ',' curr_event]);
+                if (ismember(check1,char_f1) & ismember(check2,char_f2))
+                    event_index = 0;
+                    for event_index_idx = 1:(size(par_event_list,1))
+                        if isequal(curr_event, par_event_list(event_index_idx,:))
+                            event_index = event_index_idx;
+                            break
+                        end
+                    end
+                    par_trans_list = [par_trans_list; i,j,event_index];
+                end
+            end
+        end
+    end
+    %}
 end
 
