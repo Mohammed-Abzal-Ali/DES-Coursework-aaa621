@@ -15,16 +15,18 @@ function automata_out = Parallel(g1, g2)
     automata_out.initial_state = CartProd(g1.initial_state, g2.initial_state);
 end
 
+% This is probably way too overcomplicated
 function par_trans_list = parallel_transition(g1, g2, par_event_list, par_state_list)
     par_trans_list = [];
-
+    % Get relevant information
     E_1 = g1.event_list;
     E_2 = g2.event_list;
     X_1 = g1.state_list;
     X_2 = g2.state_list;
     f_1 = g1.transition_list;
     f_2 = g2.transition_list;
-
+    
+    % Convert the transition lists to be easier to compare later (int -> string)
     char_f1 = [];
     for idxf = 1:(size(f_1,1))
         curr_trans = f_1(idxf,:);
@@ -46,6 +48,8 @@ function par_trans_list = parallel_transition(g1, g2, par_event_list, par_state_
     end
     char_f1 = string(char_f1);
     char_f2 = string(char_f2);
+
+
     % Get the event sets needed to determine the transition
     only1 = setdiff(E_1, E_2);  % E1/E2
     only2 = setdiff(E_2, E_1);  % E2/E2
@@ -76,7 +80,7 @@ function par_trans_list = parallel_transition(g1, g2, par_event_list, par_state_
 
             % Now that we have our states, for each event in the prior 
             % sets, check if that event is dfeined as a transition for 
-            % our curent pairs
+            % our curent pairs and that the conditons are satisfied
 
             % For events in only automata 1
             for idx_only1 = 1:length(only1)

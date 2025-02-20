@@ -32,18 +32,18 @@ G_R.initial_state = 'fn'; % Assumed the bot starts facing north
 
 G_MparR = Parallel(G_M, G_R);
 
-G_MparR.display_all
+%G_MparR.display_all
 
-G_N = PartialObserve(G_MparR);
-
-
-%{
 unobs = char('n', 's', 'e', 'w');
 rep = char('m');
-G_R.event_list = char('n', 's', 'e', 'w','r','a'); %  Partial observe test Event List
-fbj = PartialObserve(G_R,unobs,rep);
-fbj.display_all;
-%}
+G_N = PartialObserve(G_MparR,unobs,rep);
+
+G_N.display_all
+
+
+
+unobs = char('n', 's', 'e', 'w');
+rep = char('m');
 
 %{
 G_M.display_all
